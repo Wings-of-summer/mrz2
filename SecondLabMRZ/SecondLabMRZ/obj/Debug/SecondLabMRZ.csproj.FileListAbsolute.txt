@@ -1,1 +1,2 @@
 C:\Asya\Labs\mrz2\SecondLabMRZ\SecondLabMRZ\bin\Debug\SecondLabMRZ.exe.config
+d:\University\C#Projects\mrz2\SecondLabMRZ\SecondLabMRZ\bin\Debug\SecondLabMRZ.exe.config

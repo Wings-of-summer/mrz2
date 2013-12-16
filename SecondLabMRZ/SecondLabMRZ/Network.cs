@@ -21,15 +21,16 @@ namespace SecondLabMRZ
 
         private RectangularMatrix weightMatrix1;
 
-        private RowVector weightMatrix2;
+        private RectangularMatrix weightMatrix2;
 
-        private ColumnVector contextNeurons;
+        private RectangularMatrix contextNeurons;
 
         private int delay = 0;
 
         private int logStep = 1;
 
-        public Network(int windowSize, int imagesNumber, double learningCoefficient, double maxError, int maxIterations) {
+        public Network(int windowSize, int imagesNumber, double learningCoefficient, double maxError, int maxIterations)
+        {
 
             this.windowSize = windowSize;
             this.imagesNumber = imagesNumber;
@@ -39,63 +40,77 @@ namespace SecondLabMRZ
 
             weightMatrix1 = new RectangularMatrix(imagesNumber, windowSize + imagesNumber);
             CreateRandomMatrix(weightMatrix1);
-            weightMatrix2 = new RowVector(imagesNumber);
-            CreateRandomRowVector(weightMatrix2);
-            contextNeurons = new ColumnVector(imagesNumber);
+            weightMatrix2 = new RectangularMatrix(1, imagesNumber);
+            CreateRandomMatrix(weightMatrix2);
+            contextNeurons = new RectangularMatrix(imagesNumber, 1);
         }
 
-        public double[] Predict(double[] sequence, int predictedAmount) {
+        public double[] Predict(double[] sequence, int predictedAmount)
+        {
 
             double[] predictedSequence = new double[predictedAmount];
 
-            for (int i = 0; i < predictedAmount; i++) {
+            for (int i = 0; i < predictedAmount; i++)
+            {
 
                 double[] image = new double[windowSize];
 
-                if (windowSize - i > 0) {
-                    System.arraycopy(sequence, sequence.length - windowSize + i, image, 0, windowSize - i);
-                    System.arraycopy(predictedSequence, 0, image, windowSize - i, i);
+                if (windowSize - i > 0)
+                {
+                    Array.Copy(sequence, sequence.Length - windowSize + i, image, 0, windowSize - i);
+                    Array.Copy(predictedSequence, 0, image, windowSize - i, i);
                 }
-                else {
-                    System.arraycopy(predictedSequence, i - windowSize, image, 0, windowSize);
+                else
+                {
+                    Array.Copy(predictedSequence, i - windowSize, image, 0, windowSize);
                 }
 
-                DoubleMatrix X = DoubleMatrix.concatVertically(new DoubleMatrix(image), contextNeurons);
+                RectangularMatrix imageMatrix = new RectangularMatrix(image.Length, 1);
 
-                DoubleMatrix Y1 = weightMatrix1.mmul(X);
-                DoubleMatrix Y2 = weightMatrix2.mmul(Y1);
+                for (int j = 0; j < image.Length; j++)
+                {
+                    imageMatrix[j, 0] = image[j];
+                }
 
-                predictedSequence[i] = Y2.data[0];
+                RectangularMatrix X = ConcatVertically(imageMatrix, contextNeurons);
+
+                RectangularMatrix Y1 = weightMatrix1 * X;
+                RectangularMatrix Y2 = weightMatrix2 * Y1;
+
+                predictedSequence[i] = Y2[0, 0];
             }
 
             return predictedSequence;
         }
 
-        public void learn(double[] sequence) {
-            DoubleMatrix[] learningMatrix = createLearningMatrix(sequence);
+        public void Learn(double[] sequence)
+        {
+            RectangularMatrix[] learningMatrix = createLearningMatrix(sequence);
             double[] etalons = createEtalons(sequence);
 
             double totalError;
             int iterations = 0;
 
-            do {
+            do
+            {
 
                 // learn
-                for (int i = 0; i < learningMatrix.length; i++) {
+                for (int i = 0; i < learningMatrix.Length; i++)
+                {
 
-                    DoubleMatrix X = DoubleMatrix.concatVertically(learningMatrix[i], contextNeurons);
+                    RectangularMatrix X = ConcatVertically(learningMatrix[i], contextNeurons);
 
-                    DoubleMatrix Xn = normalize(X);
-                    double norm = X.norm2();
+                    RectangularMatrix Xn = Normalize(X);
+                    double norm = X.FrobeniusNorm();
 
-                    DoubleMatrix Y1 = weightMatrix1.mmul(Xn);
-                    DoubleMatrix Y2 = weightMatrix2.mmul(Y1);
+                    RectangularMatrix Y1 = weightMatrix1 * Xn;
+                    RectangularMatrix Y2 = weightMatrix2 * Y1;
 
-                    DoubleMatrix gamma2 = Y2.mul(norm).sub(etalons[i]);
-                    DoubleMatrix gamma1 = gamma2.mmul(weightMatrix2);
+                    RectangularMatrix gamma2 = (Y2 * norm) - CreateScalarMatrix(etalons[i], Y2.RowCount);
+                    RectangularMatrix gamma1 = gamma2 * weightMatrix2;
 
-                    weightMatrix1 = weightMatrix1.sub(Xn.mmul(gamma1.mul(learningCoefficient)));
-                    weightMatrix2 = weightMatrix2.sub(Y1.mmul(gamma2.mul(learningCoefficient)));
+                    weightMatrix1 = weightMatrix1 - (Xn * (gamma1 * learningCoefficient));
+                    weightMatrix2 = weightMatrix2 - (Y1 * (gamma2 * learningCoefficient));
 
                     contextNeurons = Y1;
                 }
@@ -103,85 +118,100 @@ namespace SecondLabMRZ
                 totalError = 0;
 
                 // calculate total error
-                for (int i = 0; i < learningMatrix.length; i++) {
+                for (int i = 0; i < learningMatrix.Length; i++)
+                {
 
-                    DoubleMatrix X = DoubleMatrix.concatVertically(learningMatrix[i], contextNeurons);
+                    RectangularMatrix X = ConcatVertically(learningMatrix[i], contextNeurons);
 
-                    DoubleMatrix Xn = normalize(X);
-                    double norm = X.norm2();
+                    RectangularMatrix Xn = Normalize(X);
+                    double norm = X.FrobeniusNorm();
 
-                    DoubleMatrix Y1 = weightMatrix1.mmul(Xn);
-                    DoubleMatrix Y2 = weightMatrix2.mmul(Y1);
+                    RectangularMatrix Y1 = weightMatrix1 * Xn;
+                    RectangularMatrix Y2 = weightMatrix2 * Y1;
 
-                    DoubleMatrix gamma2 = Y2.mul(norm).sub(etalons[i]);
+                    RectangularMatrix gamma2 = Y2 * norm - CreateScalarMatrix(etalons[i], Y2.RowCount);
 
-                    totalError += pow(gamma2.data[0], 2);
+                    totalError += Math.Pow(gamma2[0, 0], 2);
                 }
 
                 iterations++;
 
-                logByStep(iterations, totalError, logStep);
-                makeDelay(delay);
+                //logByStep(iterations, totalError, logStep);
             }
-            while (totalError >= maxError && iterations <= maxIterations && !Thread.interrupted());
+            while (totalError >= maxError && iterations <= maxIterations);
 
-            logger.log(totalError, iterations);
+            //logger.log(totalError, iterations);
         }
 
-        public void setLogger(Logger logger) {
-            this.logger = logger;
-        }
-
-        public void setDelay(int delay) {
+        public void setDelay(int delay)
+        {
             this.delay = delay;
         }
 
-        public void setLogStep(int logStep) {
+        public void setLogStep(int logStep)
+        {
             this.logStep = logStep != 0 ? logStep : 1;
         }
 
-        public DoubleMatrix getWeightMatrix1() {
+        public RectangularMatrix getWeightMatrix1()
+        {
             return weightMatrix1;
         }
 
-        public DoubleMatrix getWeightMatrix2() {
+        public RectangularMatrix getWeightMatrix2()
+        {
             return weightMatrix2;
         }
 
-        private double[] createEtalons(double[] sequence) {
-            return Arrays.copyOfRange(sequence, windowSize, windowSize + imagesNumber);
+        private double[] createEtalons(double[] sequence)
+        {
+            double[] etalons = new double[imagesNumber];
+            Array.Copy(sequence, windowSize, etalons, 0, imagesNumber);
+            return etalons;
         }
 
-        private DoubleMatrix normalize(DoubleMatrix vector) {
-
+        private RectangularMatrix Normalize(RectangularMatrix vector)
+        {
             double normalizationValue = 0;
-            for (int i = 0; i < vector.length; i++) {
-                normalizationValue += pow(vector.get(i), 2);
+            for (int i = 0; i < vector.RowCount; i++)
+            {
+                normalizationValue += Math.Pow(vector[i, 0], 2);
             }
 
-            if (normalizationValue != 0) {
-                DoubleMatrix normalizedVector = new DoubleMatrix(vector.length);
+            if (normalizationValue != 0)
+            {
+                RectangularMatrix normalizedVector = new RectangularMatrix(vector.RowCount, vector.ColumnCount);
 
-                for (int i = 0; i < vector.length; i++) {
-                    normalizedVector.data[i] = vector.get(i) / sqrt(normalizationValue);
+                for (int i = 0; i < vector.RowCount; i++)
+                {
+                    normalizedVector[i, 0] = vector[i, 0] / Math.Sqrt(normalizationValue);
                 }
 
                 return normalizedVector;
             }
-            else {
+            else
+            {
                 return vector;
             }
         }
 
-        private DoubleMatrix[] createLearningMatrix(double[] sequence) {
-            DoubleMatrix[] learningMatrix = new DoubleMatrix[imagesNumber];
-            for (int i = 0; i < imagesNumber; i++) {
-                learningMatrix[i] = new DoubleMatrix(Arrays.copyOfRange(sequence, i, i + windowSize));
+        private RectangularMatrix[] createLearningMatrix(double[] sequence)
+        {
+            RectangularMatrix[] learningMatrix = new RectangularMatrix[imagesNumber];
+            for (int i = 0; i < imagesNumber; i++)
+            {
+                RectangularMatrix matrix = new RectangularMatrix(windowSize, 1);
+                for (int j = i; j < i + windowSize; j++)
+                {
+                    matrix[j - i, 0] = sequence[i];
+                }
+                learningMatrix[i] = matrix;
             }
             return learningMatrix;
         }
 
-        private void CreateRandomMatrix(RectangularMatrix weightMatrix) {
+        private void CreateRandomMatrix(RectangularMatrix weightMatrix)
+        {
             Random rand = new Random();
             for (int i = 0; i < weightMatrix.ColumnCount; i++)
             {
@@ -201,19 +231,39 @@ namespace SecondLabMRZ
             }
         }
 
-        private void makeDelay(int delay) {
-            try {
-                Thread.sleep(delay);
+        private RectangularMatrix CreateScalarMatrix(double value, int size)
+        {
+            RectangularMatrix scalarMatrix = new RectangularMatrix(size, size);
+
+            for (int i = 0; i < size; i++)
+            {
+                scalarMatrix[i, i] = value;
             }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+
+            return scalarMatrix;
         }
 
-        private void logByStep(int iterations, double totalError, int logStep) {
-            if (iterations % logStep == 0) {
-                logger.log(totalError, iterations);
+        public static RectangularMatrix ConcatVertically(RectangularMatrix A, RectangularMatrix B)
+        {
+            RectangularMatrix result = new RectangularMatrix(A.RowCount + B.RowCount, A.ColumnCount);
+
+            for (int i = 0; i < A.RowCount; i++)
+            {
+                for (int j = 0; i < A.ColumnCount; j++)
+                {
+                    result[i, j] = A[i, j];
+                }
             }
+
+            for (int i = A.RowCount; i < A.RowCount + B.RowCount; i++)
+            {
+                for (int j = 0; i < B.ColumnCount; j++)
+                {
+                    result[i, j] = A[i - B.RowCount, j];
+                }
+            }
+
+            return result;
         }
     }
 }

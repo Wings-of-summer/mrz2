@@ -66,6 +66,8 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="FactorialSequence .cs" />
+    <Compile Include="FibonacciSequence .cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -73,6 +75,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Network.cs" />
+    <Compile Include="PeriodicSequence.cs" />
+    <Compile Include="PowerSequence.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
