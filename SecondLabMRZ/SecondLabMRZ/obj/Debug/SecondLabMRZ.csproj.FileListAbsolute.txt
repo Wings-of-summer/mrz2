@@ -1,2 +1,14 @@
 C:\Asya\Labs\mrz2\SecondLabMRZ\SecondLabMRZ\bin\Debug\SecondLabMRZ.exe.config
 d:\University\C#Projects\mrz2\SecondLabMRZ\SecondLabMRZ\bin\Debug\SecondLabMRZ.exe.config
+c:\Asya\Labs\mrz2\SecondLabMRZ\SecondLabMRZ\obj\Debug\SecondLabMRZ.csprojResolveAssemblyReference.cache
+c:\Asya\Labs\mrz2\SecondLabMRZ\SecondLabMRZ\obj\Debug\MainWindow.baml
+c:\Asya\Labs\mrz2\SecondLabMRZ\SecondLabMRZ\obj\Debug\MainWindow.g.cs
+c:\Asya\Labs\mrz2\SecondLabMRZ\SecondLabMRZ\obj\Debug\App.g.cs
+c:\Asya\Labs\mrz2\SecondLabMRZ\SecondLabMRZ\obj\Debug\SecondLabMRZ_MarkupCompile.cache
+c:\Asya\Labs\mrz2\SecondLabMRZ\SecondLabMRZ\obj\Debug\SecondLabMRZ.g.resources
+c:\Asya\Labs\mrz2\SecondLabMRZ\SecondLabMRZ\obj\Debug\SecondLabMRZ.Properties.Resources.resources
+c:\Asya\Labs\mrz2\SecondLabMRZ\SecondLabMRZ\obj\Debug\SecondLabMRZ.csproj.GenerateResource.Cache
+c:\Asya\Labs\mrz2\SecondLabMRZ\SecondLabMRZ\bin\Debug\SecondLabMRZ.exe
+c:\Asya\Labs\mrz2\SecondLabMRZ\SecondLabMRZ\bin\Debug\SecondLabMRZ.pdb
+c:\Asya\Labs\mrz2\SecondLabMRZ\SecondLabMRZ\obj\Debug\SecondLabMRZ.exe
+c:\Asya\Labs\mrz2\SecondLabMRZ\SecondLabMRZ\obj\Debug\SecondLabMRZ.pdb

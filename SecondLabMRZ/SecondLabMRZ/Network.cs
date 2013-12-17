@@ -109,8 +109,11 @@ namespace SecondLabMRZ
                     RectangularMatrix gamma2 = (Y2 * norm) - CreateScalarMatrix(etalons[i], Y2.RowCount);
                     RectangularMatrix gamma1 = gamma2 * weightMatrix2;
 
-                    weightMatrix1 = weightMatrix1 - (Xn * (gamma1 * learningCoefficient));
-                    weightMatrix2 = weightMatrix2 - (Y1 * (gamma2 * learningCoefficient));
+                    RectangularMatrix a = gamma1 * learningCoefficient;
+                    RectangularMatrix b = Xn * a;
+
+                    weightMatrix1 = weightMatrix1 - b.Transpose();
+                    weightMatrix2 = weightMatrix2 - (Y1 * (gamma2 * learningCoefficient)).Transpose();
 
                     contextNeurons = Y1;
                 }
@@ -165,7 +168,7 @@ namespace SecondLabMRZ
 
         private double[] createEtalons(double[] sequence)
         {
-            double[] etalons = new double[imagesNumber];
+            double[] etalons = new double[imagesNumber + 1];
             Array.Copy(sequence, windowSize, etalons, 0, imagesNumber);
             return etalons;
         }
@@ -213,9 +216,9 @@ namespace SecondLabMRZ
         private void CreateRandomMatrix(RectangularMatrix weightMatrix)
         {
             Random rand = new Random();
-            for (int i = 0; i < weightMatrix.ColumnCount; i++)
+            for (int i = 0; i < weightMatrix.RowCount; i++)
             {
-                for (int j = 0; j < weightMatrix.RowCount; j++)
+                for (int j = 0; j < weightMatrix.ColumnCount; j++)
                 {
                     weightMatrix[i, j] = rand.NextDouble() * 0.1;
                 }
@@ -249,7 +252,7 @@ namespace SecondLabMRZ
 
             for (int i = 0; i < A.RowCount; i++)
             {
-                for (int j = 0; i < A.ColumnCount; j++)
+                for (int j = 0; j < A.ColumnCount; j++)
                 {
                     result[i, j] = A[i, j];
                 }
@@ -257,7 +260,7 @@ namespace SecondLabMRZ
 
             for (int i = A.RowCount; i < A.RowCount + B.RowCount; i++)
             {
-                for (int j = 0; i < B.ColumnCount; j++)
+                for (int j = 0; j < B.ColumnCount; j++)
                 {
                     result[i, j] = A[i - B.RowCount, j];
                 }

@@ -10,11 +10,11 @@ namespace SecondLabMRZ
     {
         private const int PERIOD_LENGTH = 4;
 
-        private const Dictionary<int, int> NUMBER_AT_PERIOD_POSITION = new Dictionary<int, int>() {{0, 1}, {1, 0}, {2, -1}, {3, 0}};
+        private Dictionary<int, int> NUMBER_AT_PERIOD_POSITION = new Dictionary<int, int>() {{0, 1}, {1, 0}, {2, -1}, {3, 0}};
 
-        public int[] GenerateSequence(int from, int to)
+        public double[] GenerateSequence(int from, int to)
         {
-            int[] resultSequence = new int[to - from];
+            double[] resultSequence = new double[to - from];
 
             for (int i = from; i < to; i++)
             {

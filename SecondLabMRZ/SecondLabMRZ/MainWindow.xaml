@@ -1,7 +1,7 @@
 ﻿<Window x:Class="SecondLabMRZ.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MainWindow" Height="400" Width="650">
+        Title="MainWindow" Height="450" Width="750">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="49*"/>
@@ -16,10 +16,32 @@
                 <TextBlock TextWrapping="Wrap">Количество шагов обучения N</TextBlock>
             </Label.Content>
         </Label>
-        <TextBox x:Name="errorTextBox" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="10,24,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
-        <TextBox x:Name="aTextBox" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="10,55,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
-        <TextBox x:Name="pTextBox" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="10,88,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
-        <TextBox x:Name="lTextBox" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="10,121,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
-        <TextBox x:Name="nTextBox" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="10,154,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
+        <TextBox x:Name="errorTextBox" Text="0.1" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="10,24,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
+        <TextBox x:Name="aTextBox" Text="0.1" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="10,55,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
+        <TextBox x:Name="pTextBox" Text="4" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="10,88,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
+        <TextBox x:Name="lTextBox" Text="6" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="10,121,0,0" TextWrapping="Wrap"  VerticalAlignment="Top" Width="120"/>
+        <TextBox x:Name="nTextBox" Text="50" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="10,154,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
+        <Label Content="Вид последовательности" Grid.Column="1" HorizontalAlignment="Left" Margin="242,21,0,0" VerticalAlignment="Top"/>
+        <ComboBox x:Name="sequenceType" Grid.Column="1" HorizontalAlignment="Left" Margin="242,52,0,0" VerticalAlignment="Top" Width="160" 
+                  Loaded="sequenceTypeComboBox_Loaded" SelectionChanged="sequenceTypeComboBox_SelectionChanged"/>
+        <Label Content="Последовательность" Grid.Column="1" HorizontalAlignment="Left" Margin="253,85,0,0" VerticalAlignment="Top"/>
+        <Label Grid.Column="1" HorizontalAlignment="Left" Margin="253,148,0,0" VerticalAlignment="Top" Height="56" Width="290">
+            <Label.Content>
+                <TextBlock x:Name="sequenceLabel" TextWrapping="Wrap" Height="46" Width="280"></TextBlock>
+            </Label.Content>
+        </Label>
+        <Label Content="c" Grid.Column="1" HorizontalAlignment="Left" Margin="263,116,0,0" VerticalAlignment="Top"/>
+        <TextBox x:Name="fromTextBox" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="284,118,0,0" TextWrapping="Wrap" Text="1" VerticalAlignment="Top" Width="30"/>
+        <Label Content="по" Grid.Column="1" HorizontalAlignment="Left" Margin="343,116,0,0" VerticalAlignment="Top"/>
+        <TextBox x:Name="toTextBox" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="374,118,0,0" TextWrapping="Wrap" Text="20" VerticalAlignment="Top" Width="30"/>
+        <Rectangle Fill="AliceBlue" HorizontalAlignment="Left" Height="167" Margin="10,243,0,0" Stroke="AntiqueWhite" VerticalAlignment="Top" Width="722" Grid.ColumnSpan="2"/>
+        <Button x:Name="predictSequenceButton" Content="Предсказать" FontWeight="Bold" Grid.Column="1" 
+                HorizontalAlignment="Left" Margin="166,216,0,0" VerticalAlignment="Top" Width="90" Click="predictSequenceButton_Click"/>
+        <Label Content="Пресказанная последовательность" HorizontalAlignment="Left" Margin="17,252,0,0" VerticalAlignment="Top" Grid.ColumnSpan="2" Width="204"/>
+        <Label HorizontalAlignment="Left" Margin="17,283,0,0" VerticalAlignment="Top" Height="52" Width="409" Grid.ColumnSpan="2">
+            <Label.Content>
+                <TextBlock x:Name="predictedSequenceLabel" TextWrapping="Wrap" Height="42" Width="399"></TextBlock>
+            </Label.Content>
+        </Label>
     </Grid>
 </Window>
