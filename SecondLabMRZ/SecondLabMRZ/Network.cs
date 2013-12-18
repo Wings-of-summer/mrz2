@@ -1,8 +1,10 @@
 ﻿using Meta.Numerics.Matrices;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SecondLabMRZ
@@ -21,13 +23,11 @@ namespace SecondLabMRZ
 
         private RectangularMatrix weightMatrix1;
 
-        private RectangularMatrix weightMatrix2;
+        private RowVector weightMatrix2;
 
-        private RectangularMatrix contextNeurons;
+        private ColumnVector contextNeurons;
 
-        private int delay = 0;
-
-        private int logStep = 1;
+        public BackgroundResult backgroundResult { get; set; }
 
         public Network(int windowSize, int imagesNumber, double learningCoefficient, double maxError, int maxIterations)
         {
@@ -40,9 +40,9 @@ namespace SecondLabMRZ
 
             weightMatrix1 = new RectangularMatrix(imagesNumber, windowSize + imagesNumber);
             CreateRandomMatrix(weightMatrix1);
-            weightMatrix2 = new RectangularMatrix(1, imagesNumber);
-            CreateRandomMatrix(weightMatrix2);
-            contextNeurons = new RectangularMatrix(imagesNumber, 1);
+            weightMatrix2 = new RowVector(imagesNumber);
+            CreateRandomRowVector(weightMatrix2);
+            contextNeurons = new ColumnVector(imagesNumber);
         }
 
         public double[] Predict(double[] sequence, int predictedAmount)
@@ -65,55 +65,57 @@ namespace SecondLabMRZ
                     Array.Copy(predictedSequence, i - windowSize, image, 0, windowSize);
                 }
 
-                RectangularMatrix imageMatrix = new RectangularMatrix(image.Length, 1);
+                ColumnVector imageMatrix = new ColumnVector(image.Length);
 
                 for (int j = 0; j < image.Length; j++)
                 {
-                    imageMatrix[j, 0] = image[j];
+                    imageMatrix[j] = image[j];
                 }
 
-                RectangularMatrix X = ConcatVertically(imageMatrix, contextNeurons);
+                ColumnVector X = ConcatVertically(imageMatrix, contextNeurons);
 
-                RectangularMatrix Y1 = weightMatrix1 * X;
-                RectangularMatrix Y2 = weightMatrix2 * Y1;
+                ColumnVector Y1 = weightMatrix1 * X;
+                double Y2 = weightMatrix2 * Y1;
 
-                predictedSequence[i] = Y2[0, 0];
+                predictedSequence[i] = Y2;
             }
 
             return predictedSequence;
         }
 
-        public void Learn(double[] sequence)
+        public void Learn(BackgroundWorker backgroundWorker, DoWorkEventArgs e, double[] sequence, bool? showIteration)
         {
-            RectangularMatrix[] learningMatrix = createLearningMatrix(sequence);
+            ColumnVector[] learningMatrix = createLearningMatrix(sequence);
             double[] etalons = createEtalons(sequence);
+
+            backgroundResult = new BackgroundResult();
+            backgroundResult.IsComplete = false;
 
             double totalError;
             int iterations = 0;
 
             do
             {
-
                 // learn
                 for (int i = 0; i < learningMatrix.Length; i++)
                 {
 
-                    RectangularMatrix X = ConcatVertically(learningMatrix[i], contextNeurons);
+                    ColumnVector X = ConcatVertically(learningMatrix[i], contextNeurons);
 
-                    RectangularMatrix Xn = Normalize(X);
+                    ColumnVector Xn = Normalize(X);
                     double norm = X.FrobeniusNorm();
 
-                    RectangularMatrix Y1 = weightMatrix1 * Xn;
-                    RectangularMatrix Y2 = weightMatrix2 * Y1;
+                    ColumnVector Y1 = weightMatrix1 * Xn;
+                    double Y2 = weightMatrix2 * Y1;
 
-                    RectangularMatrix gamma2 = (Y2 * norm) - CreateScalarMatrix(etalons[i], Y2.RowCount);
-                    RectangularMatrix gamma1 = gamma2 * weightMatrix2;
+                    double gamma2 = (Y2 * norm) - etalons[i];
+                    RowVector gamma1 = gamma2 * weightMatrix2;
 
-                    RectangularMatrix a = gamma1 * learningCoefficient;
+                    RowVector a = learningCoefficient * gamma1;
                     RectangularMatrix b = Xn * a;
 
                     weightMatrix1 = weightMatrix1 - b.Transpose();
-                    weightMatrix2 = weightMatrix2 - (Y1 * (gamma2 * learningCoefficient)).Transpose();
+                    weightMatrix2 = weightMatrix2 - ((gamma2 * learningCoefficient) * Y1).Transpose();
 
                     contextNeurons = Y1;
                 }
@@ -124,46 +126,45 @@ namespace SecondLabMRZ
                 for (int i = 0; i < learningMatrix.Length; i++)
                 {
 
-                    RectangularMatrix X = ConcatVertically(learningMatrix[i], contextNeurons);
+                    ColumnVector X = ConcatVertically(learningMatrix[i], contextNeurons);
 
-                    RectangularMatrix Xn = Normalize(X);
+                    ColumnVector Xn = Normalize(X);
                     double norm = X.FrobeniusNorm();
 
-                    RectangularMatrix Y1 = weightMatrix1 * Xn;
-                    RectangularMatrix Y2 = weightMatrix2 * Y1;
+                    ColumnVector Y1 = weightMatrix1 * Xn;
+                    double Y2 = weightMatrix2 * Y1;
 
-                    RectangularMatrix gamma2 = Y2 * norm - CreateScalarMatrix(etalons[i], Y2.RowCount);
+                    double gamma2 = Y2 * norm - etalons[i];
 
-                    totalError += Math.Pow(gamma2[0, 0], 2);
+                    totalError += Math.Pow(gamma2, 2);
+                }
+
+                backgroundResult.IterationNumber = iterations;
+                backgroundResult.Error = totalError;
+                backgroundResult.IsComplete = false;
+
+                if (showIteration.Equals(true)) 
+                {
+                    backgroundWorker.ReportProgress(0, backgroundResult);
+
+                    Thread.Sleep(200);
+
+                    if (backgroundWorker.CancellationPending)
+                    {
+                        e.Cancel = true;
+                        break;
+                    }
                 }
 
                 iterations++;
-
-                //logByStep(iterations, totalError, logStep);
             }
             while (totalError >= maxError && iterations <= maxIterations);
 
-            //logger.log(totalError, iterations);
-        }
+            backgroundResult.IterationNumber = iterations;
+            backgroundResult.Error = totalError;
+            backgroundResult.IsComplete = true;
 
-        public void setDelay(int delay)
-        {
-            this.delay = delay;
-        }
-
-        public void setLogStep(int logStep)
-        {
-            this.logStep = logStep != 0 ? logStep : 1;
-        }
-
-        public RectangularMatrix getWeightMatrix1()
-        {
-            return weightMatrix1;
-        }
-
-        public RectangularMatrix getWeightMatrix2()
-        {
-            return weightMatrix2;
+            backgroundWorker.ReportProgress(0, backgroundResult);
         }
 
         private double[] createEtalons(double[] sequence)
@@ -173,21 +174,21 @@ namespace SecondLabMRZ
             return etalons;
         }
 
-        private RectangularMatrix Normalize(RectangularMatrix vector)
+        private ColumnVector Normalize(ColumnVector vector)
         {
             double normalizationValue = 0;
             for (int i = 0; i < vector.RowCount; i++)
             {
-                normalizationValue += Math.Pow(vector[i, 0], 2);
+                normalizationValue += Math.Pow(vector[i], 2);
             }
 
             if (normalizationValue != 0)
             {
-                RectangularMatrix normalizedVector = new RectangularMatrix(vector.RowCount, vector.ColumnCount);
+                ColumnVector normalizedVector = new ColumnVector(vector.RowCount);
 
                 for (int i = 0; i < vector.RowCount; i++)
                 {
-                    normalizedVector[i, 0] = vector[i, 0] / Math.Sqrt(normalizationValue);
+                    normalizedVector[i] = vector[i] / Math.Sqrt(normalizationValue);
                 }
 
                 return normalizedVector;
@@ -198,15 +199,18 @@ namespace SecondLabMRZ
             }
         }
 
-        private RectangularMatrix[] createLearningMatrix(double[] sequence)
+        private ColumnVector[] createLearningMatrix(double[] sequence)
         {
-            RectangularMatrix[] learningMatrix = new RectangularMatrix[imagesNumber];
+            ColumnVector[] learningMatrix = new ColumnVector[imagesNumber];
             for (int i = 0; i < imagesNumber; i++)
             {
-                RectangularMatrix matrix = new RectangularMatrix(windowSize, 1);
-                for (int j = i; j < i + windowSize; j++)
+                double[] data = new double[windowSize];
+                Array.Copy(sequence, i, data, 0, windowSize);
+
+                ColumnVector matrix = new ColumnVector(windowSize);
+                for (int j = 0; j < windowSize; j++)
                 {
-                    matrix[j - i, 0] = sequence[i];
+                    matrix[j] = data[j];
                 }
                 learningMatrix[i] = matrix;
             }
@@ -220,7 +224,7 @@ namespace SecondLabMRZ
             {
                 for (int j = 0; j < weightMatrix.ColumnCount; j++)
                 {
-                    weightMatrix[i, j] = rand.NextDouble() * 0.1;
+                    weightMatrix[i, j] = rand.NextDouble() * 0.01;
                 }
             }
         }
@@ -228,9 +232,9 @@ namespace SecondLabMRZ
         private void CreateRandomRowVector(RowVector weightMatrix)
         {
             Random rand = new Random();
-            for (int j = 0; j < weightMatrix.RowCount; j++)
+            for (int j = 0; j < weightMatrix.ColumnCount; j++)
             {
-                weightMatrix[0, j] = rand.NextDouble() * 0.1;
+                weightMatrix[j] = rand.NextDouble() * 0.1;
             }
         }
 
@@ -246,27 +250,28 @@ namespace SecondLabMRZ
             return scalarMatrix;
         }
 
-        public static RectangularMatrix ConcatVertically(RectangularMatrix A, RectangularMatrix B)
+        public static ColumnVector ConcatVertically(ColumnVector A, ColumnVector B)
         {
-            RectangularMatrix result = new RectangularMatrix(A.RowCount + B.RowCount, A.ColumnCount);
+            ColumnVector result = new ColumnVector(A.RowCount + B.RowCount);
 
             for (int i = 0; i < A.RowCount; i++)
             {
-                for (int j = 0; j < A.ColumnCount; j++)
-                {
-                    result[i, j] = A[i, j];
-                }
+                result[i] = A[i];
             }
 
             for (int i = A.RowCount; i < A.RowCount + B.RowCount; i++)
             {
-                for (int j = 0; j < B.ColumnCount; j++)
-                {
-                    result[i, j] = A[i - B.RowCount, j];
-                }
+                result[i] = B[i - A.RowCount];
             }
 
             return result;
+        }
+
+        public class BackgroundResult
+        {
+            public int IterationNumber;
+            public double Error;
+            public bool IsComplete;
         }
     }
 }

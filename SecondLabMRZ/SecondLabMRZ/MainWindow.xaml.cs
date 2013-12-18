@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,11 +21,17 @@ namespace SecondLabMRZ
     /// </summary>
     public partial class MainWindow : Window
     {
+        public BackgroundWorker backgroundWorker;
+        private Network network;
         private double[] sequense;
+        private bool? showIteration = false;
 
         public MainWindow()
         {
             InitializeComponent();
+            backgroundWorker = (BackgroundWorker)this.FindResource("backgroundWorker");
+            backgroundWorker.WorkerReportsProgress = true;
+            backgroundWorker.WorkerSupportsCancellation = true;
         }
 
         private void sequenceTypeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -33,7 +40,7 @@ namespace SecondLabMRZ
 
             int index = comboBox.SelectedIndex;
 
-            sequenceLabel.Text = GetSeqence(index);
+            sequenseTextBox.Text = GetGeneratedSeqence(index);
         }
 
         private void sequenceTypeComboBox_Loaded(object sender, RoutedEventArgs e)
@@ -55,10 +62,10 @@ namespace SecondLabMRZ
 
             comboBox.SelectedIndex = 0;
 
-            sequenceLabel.Text = GetSeqence(0);
+            sequenseTextBox.Text = GetGeneratedSeqence(0);
         }
 
-        private string GetSeqence(int index) 
+        private string GetGeneratedSeqence(int index) 
         {
             string fromText = fromTextBox.Text;
             string toText = toTextBox.Text;
@@ -66,35 +73,37 @@ namespace SecondLabMRZ
             int from = 0;
             int to = 0;
 
+            double[] generatedSeqence;
+
             if (!Int32.TryParse(fromText, out from) || !Int32.TryParse(toText, out to)) 
             {
                 return String.Empty;
             }
 
-            if (index == 0) 
-            {
-                FibonacciSequence fibonacciSequence = new FibonacciSequence();
-                sequense = fibonacciSequence.GenerateSequence(from, to);
-            }
-            else if (index == 1)
+            if (index == 1)
             {
                 FactorialSequence factorialSequence = new FactorialSequence();
-                sequense = factorialSequence.GenerateSequence(from, to);
+                generatedSeqence = factorialSequence.GenerateSequence(from, to);
             }
             else if (index == 2)
             {
                 PeriodicSequence periodicSequence = new PeriodicSequence();
-                sequense = periodicSequence.GenerateSequence(from, to);
+                generatedSeqence = periodicSequence.GenerateSequence(from, to);
             }
             else if (index == 3)
             {
                 PowerSequence powerSequence = new PowerSequence(2);
-                sequense = powerSequence.GenerateSequence(from, to);
+                generatedSeqence = powerSequence.GenerateSequence(from, to);
+            }
+            else
+            {
+                FibonacciSequence fibonacciSequence = new FibonacciSequence();
+                generatedSeqence = fibonacciSequence.GenerateSequence(from, to);
             }
 
             StringBuilder builder = new StringBuilder();
 
-            foreach (int value in sequense) 
+            foreach (int value in generatedSeqence) 
             {
                 builder.Append(value.ToString() + " ");
             }
@@ -104,6 +113,11 @@ namespace SecondLabMRZ
 
         private void predictSequenceButton_Click(object sender, RoutedEventArgs e)
         {
+            StartThread();
+        }
+
+        private void StartThread()
+        {
             string windowSizeText = lTextBox.Text;
             string imagesNumberText = pTextBox.Text;
             string learningCoefficientText = aTextBox.Text;
@@ -112,8 +126,8 @@ namespace SecondLabMRZ
 
             int windowSize = 0;
             int imagesNumber = 0;
-            double learningCoefficient = 0;
-            double maxError = 0;
+            double learningCoefficient = 0.0;
+            double maxError = 0.0;
             int maxIterations = 0;
 
             if (!Int32.TryParse(windowSizeText, out windowSize) ||
@@ -125,23 +139,88 @@ namespace SecondLabMRZ
                 return;
             }
 
-            Network network = new Network(windowSize, imagesNumber, learningCoefficient, maxError, maxIterations);
+            sequenseTextBox.IsEnabled = false;
+            showIteration = showIterationCheckBox.IsChecked;
+            predictedSequenceLabel.Text = "";
 
-            network.Learn(sequense);
-            double[] predictSequense = network.Predict(sequense, 5);
+            if (showIteration.Equals(true)) 
+            {
+                stopButton.IsEnabled = true;
+            }
 
+            GetSequense();
+
+            network = new Network(windowSize, imagesNumber, learningCoefficient, maxError, maxIterations);
+
+            backgroundWorker.ProgressChanged += new ProgressChangedEventHandler(backgroundWorker_ProgressChanged);
+
+            backgroundWorker.RunWorkerAsync(network);
         }
 
         private void ShowPredictSequense(double[] predictSequense) 
         {
             StringBuilder builder = new StringBuilder();
 
-            foreach (int value in predictSequense)
+            foreach (double value in predictSequense)
             {
-                builder.Append(value.ToString() + " ");
+                builder.Append(Math.Round(value, 4).ToString() + " ");
             }
 
             predictedSequenceLabel.Text = builder.ToString();
+        }
+
+        private void backgroundWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            Network network = (Network)e.Argument;
+
+            network.Learn(backgroundWorker, e, sequense, showIteration);
+        }
+
+        private void backgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            Network.BackgroundResult result = (Network.BackgroundResult)e.UserState;
+            if (result.IsComplete)
+            {
+                string predictNumberText = predictNumberTextBox.Text;
+                int predictNumber = 0;
+
+                if (Int32.TryParse(predictNumberText, out predictNumber)) 
+                {
+                    double[] predictSequense = network.Predict(sequense, predictNumber);
+                    ShowPredictSequense(predictSequense);
+                }
+                sequenseTextBox.IsEnabled = true;
+            }
+            else 
+            {
+                iterationNumberLabel.Content = result.IterationNumber.ToString();
+                currentErrorLabel.Content = result.Error.ToString();
+            }
+        }
+
+        private void GetSequense() 
+        {
+            string sequenseText = sequenseTextBox.Text;
+            string[] sequenseItemsText = sequenseText.Split(' ');
+
+            List<double> tempSequense = new List<double>();
+
+            foreach (string itemText in sequenseItemsText) 
+            {
+                double number = 0;
+                if (Double.TryParse(itemText, out number)) 
+                {
+                    tempSequense.Add(number);
+                }
+            }
+
+             sequense = tempSequense.ToArray();
+        }
+
+        private void stopButton_Click(object sender, RoutedEventArgs e)
+        {
+            stopButton.IsEnabled = false;
+            this.backgroundWorker.CancelAsync();
         }
     }
 }
